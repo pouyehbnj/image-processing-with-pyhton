@@ -4,44 +4,42 @@ import matplotlib.pyplot as plt
 import numpy as np
 from skimage.util import view_as_blocks
 from PIL import Image
-import os, sys
+import os
+import sys
 from skimage import color
+import skimage.io as ski
+from skimage.transform import rescale, resize, downscale_local_mean
 
+file_names =[]
 
 def load_images_from_folder(folder):
     images = []
     for filename in os.listdir(folder):
-        img = cv2.imread(os.path.join(folder,filename))
+        img = cv2.imread(os.path.join(folder, filename))
+        file_names.append(filename)
         if img is not None:
             images.append(img)
     return images
 
-images = load_images_from_folder('./images')
 
+images = load_images_from_folder('./images')
+print(images)
 # plt.figure(figsize=(4, 4))
 # plt.imshow(images[0], cmap='gray')
 # plt.axis('off')
 # plt.show()
 
 
-# size of blocks
-views = []
-block_shape = (3, 3)
+# rescalong images
+images_rescaled = []
+count = 0 
 
-# see astronaut as a matrix of blocks (of shape block_shape)
-# for image in images:
-#     views.append(view_as_blocks(image, block_shape))
-#     print(views)
-
-#!/usr/bin/python
-
-block_shape = (4, 4)
-resized_images = []
 for image in images:
-    resized_images.append(view_as_blocks(color.rgb2gray(image), block_shape))
-     imResize.save(f + ' resized.jpg', 'JPEG', quality=90)
+    new_image = rescale(image, 0.3, anti_aliasing=False)
+    images_rescaled.append(new_image)
+    ski.imsave(f'./scaling/{file_names[count]}',new_image)
+    count =  count + 1 
+    
 
-skimage.io.imsave(fname="chair.tif", arr=image)
-
-
-
+print(images_rescaled)
+    
