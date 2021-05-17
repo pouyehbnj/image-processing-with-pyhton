@@ -6,9 +6,14 @@ from skimage.util import view_as_blocks
 from PIL import Image
 import os
 import sys
-from skimage import color
+from skimage import exposure
 import skimage.io as ski
-from skimage.transform import rescale, resize, downscale_local_mean
+from skimage.transform import rescale
+
+from skimage import data, img_as_float
+from skimage.restoration import denoise_nl_means, estimate_sigma
+
+from skimage.util import random_noise
 
 file_names =[]
 
@@ -30,7 +35,7 @@ print(images)
 # plt.show()
 
 
-# rescalong images
+# rescaling images
 images_rescaled = []
 count = 0 
 
@@ -42,4 +47,38 @@ for image in images:
     
 
 print(images_rescaled)
+
+
+#adjusting contrast
+count = 0 
+for image in images: 
+    logarithmic_corrected = exposure.adjust_log(image, 1)
+    ski.imsave(f'./contrast/raw-image-{file_names[count]}',logarithmic_corrected)
+    count =  count + 1 
+
+count = 0
+for image in images_rescaled: 
+    logarithmic_corrected = exposure.adjust_log(image, 1)
+    ski.imsave(f'./contrast/rescaled-image-{file_names[count]}',logarithmic_corrected)
+    count =  count + 1 
+
+
+## denoising 
+patch_kw = dict(patch_size=5,      # 5x5 patches
+                patch_distance=6,  # 13x13 search area
+                multichannel=True)
+count = 0 
+for image in images: 
+    sigma_est = np.mean(estimate_sigma(image, multichannel=True))
+    denoise2_fast = denoise_nl_means(image, h=0.6 * sigma_est, sigma=sigma_est,fast_mode=True, **patch_kw)
+    ski.imsave(f'./denoising/raw-image-{file_names[count]}',denoise2_fast)
+    count =  count + 1 
+
+count = 0
+for image in images_rescaled: 
+    sigma_est = np.mean(estimate_sigma(image, multichannel=True))
+    denoise2_fast = denoise_nl_means(image, h=0.6 * sigma_est, sigma=sigma_est,fast_mode=True, **patch_kw)
+    ski.imsave(f'./denoising/rescaled-image-{file_names[count]}',denoise2_fast)
+    count =  count + 1 
     
+
