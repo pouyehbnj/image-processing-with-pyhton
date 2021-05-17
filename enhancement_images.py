@@ -8,8 +8,11 @@ import os
 import sys
 from skimage import exposure
 import skimage.io as ski
+from skimage import color
 from skimage.transform import rescale
-
+from skimage.data import page
+from skimage.filters import (threshold_otsu, threshold_niblack,
+                             threshold_sauvola)
 from skimage import data, img_as_float
 from skimage.restoration import denoise_nl_means, estimate_sigma
 
@@ -29,10 +32,7 @@ def load_images_from_folder(folder):
 
 images = load_images_from_folder('./images')
 print(images)
-# plt.figure(figsize=(4, 4))
-# plt.imshow(images[0], cmap='gray')
-# plt.axis('off')
-# plt.show()
+
 
 
 # rescaling images
@@ -48,37 +48,70 @@ for image in images:
 
 print(images_rescaled)
 
-
+images_edited_version1 = []
+images_rescaled_edited_version1 = []
 #adjusting contrast
-count = 0 
-for image in images: 
-    logarithmic_corrected = exposure.adjust_log(image, 1)
-    ski.imsave(f'./contrast/raw-image-{file_names[count]}',logarithmic_corrected)
-    count =  count + 1 
 
-count = 0
-for image in images_rescaled: 
-    logarithmic_corrected = exposure.adjust_log(image, 1)
-    ski.imsave(f'./contrast/rescaled-image-{file_names[count]}',logarithmic_corrected)
-    count =  count + 1 
+
+def adjusting_contrast(images,type):
+    contrast_adjusted = []
+    count = 0 
+    for image in images: 
+        logarithmic_corrected = exposure.adjust_log(image, 1)
+        contrast_adjusted.append(logarithmic_corrected)
+        ski.imsave(f'./contrast/{type}-{file_names[count]}',logarithmic_corrected)
+        count =  count + 1
+    return contrast_adjusted         
+
+images_edited_version1 = adjusting_contrast(images,'raw-image') 
+images_rescaled_edited_version1 = adjusting_contrast(images_rescaled, 'rescaled-image')
 
 
 ## denoising 
-patch_kw = dict(patch_size=5,      # 5x5 patches
+
+def denoising(images,type):
+    denoised = []
+    patch_kw = dict(patch_size=5,      # 5x5 patches
                 patch_distance=6,  # 13x13 search area
                 multichannel=True)
-count = 0 
-for image in images: 
-    sigma_est = np.mean(estimate_sigma(image, multichannel=True))
-    denoise2_fast = denoise_nl_means(image, h=0.6 * sigma_est, sigma=sigma_est,fast_mode=True, **patch_kw)
-    ski.imsave(f'./denoising/raw-image-{file_names[count]}',denoise2_fast)
-    count =  count + 1 
+    count = 0 
+    for image in images: 
+        sigma_est = np.mean(estimate_sigma(image, multichannel=True))
+        denoise2_fast = denoise_nl_means(image, h=0.6 * sigma_est, sigma=sigma_est,fast_mode=True, **patch_kw)
+        ski.imsave(f'./denoising/{type}-{file_names[count]}',denoise2_fast)
+        denoised.append(denoise2_fast)
+        count =  count + 1
+    return denoised
 
-count = 0
-for image in images_rescaled: 
-    sigma_est = np.mean(estimate_sigma(image, multichannel=True))
-    denoise2_fast = denoise_nl_means(image, h=0.6 * sigma_est, sigma=sigma_est,fast_mode=True, **patch_kw)
-    ski.imsave(f'./denoising/rescaled-image-{file_names[count]}',denoise2_fast)
-    count =  count + 1 
+images_edited_version1 = denoising(images_edited_version1,'raw-image') 
+images_rescaled_edited_version1 = denoising(images_rescaled_edited_version1, 'rescaled-image')
     
 
+## thresholding 
+
+def thresholding(images,type):
+    count = 0 
+    thresholded = []
+    for image in images: 
+        binary_global = image > threshold_otsu(image)
+        ski.imsave(f'./thresholding/{type}-{file_names[count]}',binary_global)
+        thresholded.append(binary_global)
+        count =  count + 1
+    return thresholded 
+
+
+images_edited_version1 = thresholding(images_edited_version1,'raw-image') 
+images_rescaled_edited_version1 = thresholding(images_rescaled_edited_version1, 'rescaled-image')
+
+## second version of editiing
+
+images_edited_version2 = []
+images_rescaled_edited_version2 = []
+
+
+images_edited_version2 = denoising(images,'raw-image') 
+images_rescaled_edited_version2 = denoising(images_rescaled, 'rescaled-image')
+images_edited_version2 = adjusting_contrast(images_edited_version2,'raw-image') 
+images_rescaled_edited_version2 = adjusting_contrast(images_rescaled_edited_version2, 'rescaled-image')
+images_edited_version2 = thresholding(images_edited_version2,'raw-image') 
+images_rescaled_edited_version2 = thresholding(images_rescaled_edited_version2, 'rescaled-image')
